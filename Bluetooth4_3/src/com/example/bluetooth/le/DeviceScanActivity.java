@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -56,9 +57,14 @@ public class DeviceScanActivity extends ListActivity {
     private static final int REQUEST_ENABLE_BT = 1;
    
     private static final long SCAN_PERIOD = 10000;  // 10秒后停止查找搜索.
-	private static final UUID[] UUID[] = null;
+    UUID u1 = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
+   // UUID u2 = UUID.fromString("0000ffe4-0000-1000-8000-00805f9b34fb");
+    //UUID u3 = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb");
 
-    @Override
+    final UUID[] myUUID = { u1 };
+	
+	
+			@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getActionBar().setTitle(R.string.title_devices);
@@ -170,6 +176,7 @@ public class DeviceScanActivity extends ListActivity {
     }
 
     private void scanLeDevice(final boolean enable) {
+    	
         if (enable) {
             // Stops scanning after a pre-defined scan period.
             mHandler.postDelayed(new Runnable() {
@@ -182,13 +189,51 @@ public class DeviceScanActivity extends ListActivity {
             }, SCAN_PERIOD);
 
             mScanning = true;
-            
+           // UUID[0]=ParcelUuid.fromString("00000000-0000-0000-0000-000000000000");
           
             mBluetoothAdapter.startLeScan(mLeScanCallback);
         } else {
             mScanning = false;
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
+       /*
+        if(mBluetoothAdapter == null) {
+            return;
+        }
+    
+        /*
+        为什么不能再使用单例的BluetoothAdapter? 原因如下:
+        bluetoothAdapter.startLeScan() //deprecated
+        http://stackoverflow.com/questions/30223071/startlescan-replacement-to-current-api
+        Remember that the method: public BluetoothLeScanner getBluetoothLeScanner () isn't static.
+        If you do: BluetoothAdapter.getBluetoothLeScanner()
+        you will get an error, since getDefaultAdapter() is a static method, but getBluetoothLeScanner() isn't.
+        You need an instance of a BluetoothAdapter.
+         
+        final BluetoothLeScanner scanner = BluetoothAdapter.getBluetoothLeScanner();
+        if(enable) {
+            //scan分为2类,而在android L之前,搜索条件只有uuid
+            //(1)直接搜索全部周围peripheral(外围的)设备,搜索结果将通过这个callback返回
+            scanner.startScan(mLeScanCallback);
+            //(2)根据过滤条件搜索设备
+            final List<ScanFilter> scanFilters = new ArrayList<ScanFilter>();
+            //uuid格式8-4-4-4-12(32位,128bit)
+            //address格式(12位,48bit)
+            scanFilters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString("00000000-0000-0000-0000-000000000000")).setDeviceAddress("00:00:00:00:00:00").build());
+            ScanSettings scanSettings = new ScanSettings.Builder()
+                    //require API 23
+                    //.setCallbackType(0).setMatchMode(0).setNumOfMatches(0)
+                    .setReportDelay(0).setScanMode(BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE).build();
+            scanner.startScan(scanFilters, scanSettings, scanCallback);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scanner.stopScan(scanCallback);
+                }
+            }, SCAN_PERIOD);
+        } else {
+            scanner.stopScan(scanCallback);
+        }*/
         invalidateOptionsMenu();
     }
 

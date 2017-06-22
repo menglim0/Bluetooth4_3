@@ -16,6 +16,13 @@
 
 package com.example.bluetooth.le;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
+
 import android.app.Activity;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
@@ -37,25 +44,14 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
-import android.widget.Button;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Timer;
-
-import com.example.bluetooth.le.R;
 //import com.mt.truthblue2_1.TalkActivity;
 //import com.example.circleview.MainActivity.MyTimerTask;
-
-
 //import com.example.circleview.MainActivity.MyTimerTask;
-
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * For a given BLE device, this Activity provides the user interface to connect, display data,
@@ -73,38 +69,22 @@ public class DeviceControlActivity extends Activity {
     private TextView mDataField;
     private String mDeviceName;
     private String mDeviceAddress;
+    private Button str_button1;
     private ExpandableListView mGattServicesList;
     private BluetoothLeService mBluetoothLeService;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+    
+    private BluetoothGattCharacteristic mGattCharacteristics_Serial;
     private boolean mConnected = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
     
-    /*绘制图形，add @0618*/
-    
-    Button btnSimpleDraw, btnTimerDraw;
-    SurfaceView sfv;
-    SurfaceHolder sfh;
- 
-    private Timer mTimer;
-    private MyTimerTask mTimerTask;
-    int Y_axis[],//保存正弦波的Y轴上的点   
-    centerY,//中心线
-    oldX,oldY,//上一个XY点 
-    currentX;//当前绘制到的X轴上的点
-    public volatile boolean exit = false; 
-    public volatile boolean LockTask = false; 
-    /*绘制图形，add @0618*/
-
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
-    	/*增加一个按钮*/
-    	//private Button mButton1;
-    	/*End增加一个按钮 */
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
@@ -154,17 +134,13 @@ public class DeviceControlActivity extends Activity {
     // demonstrates 'Read' and 'Notify' features.  See
     // http://d.android.com/reference/android/bluetooth/BluetoothGatt.html for the complete
     // list of supported characteristic features.
+    /*
     private final ExpandableListView.OnChildClickListener servicesListClickListner =
             new ExpandableListView.OnChildClickListener() {
                 @Override
                 public boolean onChildClick(ExpandableListView parent, View v, int groupPosition,
                                            int childPosition, long id) {
-                	
-                    oldY = centerY;
-                    if(LockTask == false)
-                   {mTimer.schedule(mTimerTask, 0, 5);}//动态绘制正弦波
-                    LockTask= true;
-                    
+                              
                     if (mGattCharacteristics != null) {
                         final BluetoothGattCharacteristic characteristic =
                                 mGattCharacteristics.get(groupPosition).get(childPosition);
@@ -191,7 +167,25 @@ public class DeviceControlActivity extends Activity {
                     return false;
                 }
     };
-
+    */
+/*
+    private final OnClickListener SerialTransClickListner = new OnClickListener(){
+    	public void onClick(View v){
+    		switch (v.getId()) {
+    		case R.id.str_button1:
+    			mBluetoothLeService.setCharacteristicNotification(mGattCharacteristics_Serial,true);	
+    			break;
+    			
+    			default:
+    				break;
+    		};
+    		
+    		
+    	};
+    	
+    };
+    */
+    
     private void clearUI() {
         mGattServicesList.setAdapter((SimpleExpandableListAdapter) null);
         mDataField.setText(R.string.no_data);
@@ -208,38 +202,23 @@ public class DeviceControlActivity extends Activity {
 
         // Sets up UI references.
        ((TextView) findViewById(R.id.device_address)).setText(mDeviceAddress);
-        mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
-        mGattServicesList.setOnChildClickListener(servicesListClickListner);
+       // mGattServicesList = (ExpandableListView) findViewById(R.id.gatt_services_list);
+       // mGattServicesList.setOnChildClickListener(servicesListClickListner);
         mConnectionState = (TextView) findViewById(R.id.connection_state);
        	mDataField = (TextView) findViewById(R.id.data_value);
-
+       	
+       	/*注册Button监听事件*/
+       //	str_button1 = (Button) findViewById(R.id.str_button1);
+       	//OnClickListener OnClickListener;
+		//str_button1.setOnClickListener(SerialTransClickListner);
+       	
         getActionBar().setTitle("读取油温");
         getActionBar().setDisplayHomeAsUpEnabled(true);
         
         /*响应蓝牙服务--BluetoothLeService*/
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-        
-        /*开启绘图线程*/
-        sfv = (SurfaceView)findViewById(R.id.surfaceView01);
-        sfh = sfv.getHolder();
- 
-        //动态绘制正弦波的定时器
-        mTimer = new Timer();
-        mTimerTask = new MyTimerTask();
- 
-        // 初始化y轴数据
-        /* */
-        centerY = (getWindowManager().getDefaultDisplay().getHeight() - sfv
-                .getTop()) / 2;
-        Y_axis = new int[getWindowManager().getDefaultDisplay().getWidth()];
-        for (int i = 1; i < Y_axis.length; i++) {// 计算正弦波
-            Y_axis[i - 1] = centerY
-                    - (int) (100 * Math.sin(i * 2 * Math.PI / 180));
-        }
-
-       
-        
+      
     }
 
     @Override
@@ -248,6 +227,7 @@ public class DeviceControlActivity extends Activity {
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+           
             Log.d(TAG, "C onnect request result=" + result);
         }
     }
@@ -324,7 +304,7 @@ public class DeviceControlActivity extends Activity {
         ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
                 = new ArrayList<ArrayList<HashMap<String, String>>>();
         mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-
+      
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
             HashMap<String, String> currentServiceData = new HashMap<String, String>();
@@ -332,26 +312,29 @@ public class DeviceControlActivity extends Activity {
             
             /*选择Oil Temp需要的服务ffe0 下的ffe4*/
             if (uuid.contains("0000ffe0-0000-1000-8000-00805f9b34fb")) {
+            	
             currentServiceData.put(
                     LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
             currentServiceData.put(LIST_UUID, uuid);
+            	
+           // BluetoothGattCharacteristic gattCharacteristic =   
+            				//	gattService.getCharacteristic(UUID.fromString(uuid)); 
             
-            /*增加一个新页*/
-       	  	//setContentView(R.layout.displaydata);
-       	  	//mDataField = (TextView) findViewById(R.id.data_value);
+     
        	 
-            gattServiceData.add(currentServiceData);
+           gattServiceData.add(currentServiceData);
 
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
+           ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
                     new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
+          List<BluetoothGattCharacteristic> gattCharacteristics =
                     gattService.getCharacteristics();
             ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
+                  new ArrayList<BluetoothGattCharacteristic>();
+                  
 
             // Loops through available Characteristics.
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
+               charas.add(gattCharacteristic);
                 HashMap<String, String> currentCharaData = new HashMap<String, String>();
                 uuid = gattCharacteristic.getUuid().toString();
                 
@@ -361,8 +344,9 @@ public class DeviceControlActivity extends Activity {
                 gattCharacteristicGroupData.add(currentCharaData);  
                 
              // When find the UUID, connect directly 
-                mBluetoothLeService.setCharacteristicNotification(gattCharacteristic,true);
-                
+                //mBluetoothLeService.setCharacteristicNotification(gattCharacteristic,true);
+                mGattCharacteristics_Serial = gattCharacteristic;
+                mBluetoothLeService.setCharacteristicNotification(mGattCharacteristics_Serial,true);
 
             }
             mGattCharacteristics.add(charas);
@@ -372,6 +356,7 @@ public class DeviceControlActivity extends Activity {
         }
 
 
+/*
         SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
                 this,
                 gattServiceData,
@@ -384,6 +369,7 @@ public class DeviceControlActivity extends Activity {
                 new int[] { android.R.id.text1, android.R.id.text2 }
         );
         mGattServicesList.setAdapter(gattServiceAdapter);
+        */
     }
 
     private static IntentFilter makeGattUpdateIntentFilter() {
@@ -395,55 +381,5 @@ public class DeviceControlActivity extends Activity {
         return intentFilter;
     }
     
-    /**
-     * 绘制指定区域
-     */
-    
-    class MyTimerTask extends TimerTask {
-        @Override
-        public void run() {
-        	
-        	while (!exit){
-        	Log.i("info","往前进");
-            SimpleDraw(currentX);
-            currentX++;//往前进
-            if (currentX == Y_axis.length - 1) {//如果到了终点，则清屏重来
-                ClearDraw();
-                currentX = 0;
-                oldY = centerY;
-            }
-        	}
-        }
- 
-	}
-    
- void SimpleDraw(int length) {
-        if (length == 0)
-            oldX = 0;
-        Canvas canvas = sfh.lockCanvas(new Rect(oldX, 0, oldX + length,
-                getWindowManager().getDefaultDisplay().getHeight()));// 关键:获取画布
-        Log.i("Canvas:",
-                String.valueOf(oldX) + "," + String.valueOf(oldX + length));
- 
-        Paint mPaint = new Paint();
-        mPaint.setColor(Color.GREEN);// 画笔为绿色
-        mPaint.setStrokeWidth(2);// 设置画笔粗细
- 
-        int y;
-        for (int i = oldX + 1; i < length; i++) {// 绘画正弦波
-            y = Y_axis[i - 1];
-            canvas.drawLine(oldX, oldY, i, y, mPaint);
-            oldX = i;
-            oldY = y;
-        }
-        sfh.unlockCanvasAndPost(canvas);// 解锁画布，提交画好的图像
-    }
- 
-    void ClearDraw() {
-        Canvas canvas = sfh.lockCanvas(null);
-        canvas.drawColor(Color.BLACK);// 清除画布
-        sfh.unlockCanvasAndPost(canvas);
- 
-    }
 
 }

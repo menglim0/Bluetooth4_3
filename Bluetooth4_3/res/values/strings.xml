@@ -14,14 +14,14 @@
      limitations under the License.
 -->
 <resources>
-    <string name="app_name">BLE Sample</string>
+    <string name="app_name">OTRead</string>
     <string name="ble_not_supported">BLE is not supported</string>
     <string name="label_data">油温:</string>
     <string name="label_device_address">Device Address: </string>
-    <string name="label_state">State:</string>
+    <string name="label_state">状态:</string>
     <string name="no_data">No data</string>
-    <string name="connected">Connected</string>
-    <string name="disconnected">Disconnected</string>
+    <string name="connected">连接成功</string>
+    <string name="disconnected">断开连接</string>
     <string name="title_devices">BLE Device Scan</string>
     <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
 
@@ -32,9 +32,9 @@
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
     <string name="menu_disconnect">Disconnect</string>
-    <string name="menu_scan">Scan</string>
-    <string name="menu_stop">Stop</string>
+    <string name="menu_scan">扫描</string>
+    <string name="menu_stop">停止</string>
     
-    <string name="str_button1">按我</string>
+    <string name="str_button1">油温读取</string>
        
 </resources>

@@ -17,7 +17,7 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:layout_margin="10dp"
     android:orientation="vertical" >
 
@@ -26,39 +26,12 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/label_device_address"
-            android:textSize="18sp" />
-
-        <Space
-            android:layout_width="5dp"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:id="@+id/device_address"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="18sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:orientation="horizontal" >
-
+ 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/label_state"
             android:textSize="18sp" />
-
-        <Space
-            android:layout_width="5dp"
-            android:layout_height="wrap_content" />
 
         <TextView
             android:id="@+id/connection_state"
@@ -66,23 +39,14 @@
             android:layout_height="wrap_content"
             android:text="@string/disconnected"
             android:textSize="18sp" />
+
+
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:layout_width="wrap_content"
+      <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/label_data"
             android:textSize="30sp" />
-
-        <Space
-            android:layout_width="5dp"
-            android:layout_height="wrap_content" />
 
         <TextView
             android:id="@+id/data_value"
@@ -90,17 +54,19 @@
             android:layout_height="wrap_content"
             android:text="@string/no_data"
             android:textSize="30sp" />
-    </LinearLayout>
-
-    <ExpandableListView
-        android:id="@+id/gatt_services_list"
-        android:layout_width="wrap_content"
-        android:layout_height="166dp" />
-
+ 
     <SurfaceView
         android:id="@+id/surfaceView01"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_weight="2.71" />
+        android:layout_height="0dip"
+        android:layout_weight="133.86" />
+
+
+    
+            <TextView
+            android:id="@+id/device_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp" />
 
 </LinearLayout>
