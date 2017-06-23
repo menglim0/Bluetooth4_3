@@ -38,6 +38,8 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -81,6 +83,20 @@ public class DeviceControlActivity extends Activity {
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
+    
+    PowerManager powerManager = null;
+    WakeLock wakeLock = null;
+    
+    /* Draw*/
+    SurfaceView sfv;
+    SurfaceHolder sfh;
+    int X1,X2,Y1,Y2;//保存正弦波的Y轴上的点
+    int X_axis[];//保存正弦波的Y轴上的点
+    int Y_axis[],//保存正弦波的Y轴上的点
+        centerY,//中心线
+    oldX,oldY,//上一个XY点 
+    currentX;//当前绘制到的X轴上的点    
+    /* End of Draw*/
     
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -187,11 +203,12 @@ public class DeviceControlActivity extends Activity {
     */
     
     private void clearUI() {
-        mGattServicesList.setAdapter((SimpleExpandableListAdapter) null);
+        //mGattServicesList.setAdapter((SimpleExpandableListAdapter) null);
         mDataField.setText(R.string.no_data);
     }
 
-    @Override
+    @SuppressWarnings("deprecation")
+	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.gatt_services_characteristics);
@@ -207,6 +224,13 @@ public class DeviceControlActivity extends Activity {
         mConnectionState = (TextView) findViewById(R.id.connection_state);
        	mDataField = (TextView) findViewById(R.id.data_value);
        	
+       	powerManager = (PowerManager)this.getSystemService(this.POWER_SERVICE);
+        wakeLock = this.powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Lock");
+       	
+        sfv = (SurfaceView) findViewById(R.id.surfaceView01);
+        sfh = sfv.getHolder();
+     // 初始化y轴数据
+                
        	/*注册Button监听事件*/
        //	str_button1 = (Button) findViewById(R.id.str_button1);
        	//OnClickListener OnClickListener;
@@ -224,18 +248,41 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        wakeLock.acquire();// 开启屏幕常亮 
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
            
             Log.d(TAG, "C onnect request result=" + result);
         }
+     // 初始化y轴数据
+        centerY = (sfv.getBottom() - sfv.getTop())/2+sfv.getTop();
+       
+        X1 = sfv.getLeft();
+        X2 = sfv.getRight();
+        Y1 = sfv.getTop();
+        Y2 = sfv.getBottom();
+        X_axis = new int[(sfv.getRight() - sfv.getLeft())];
+        Y_axis = new int[X_axis.length];
+       // System.out.println("图片各个角Left："+btnSimpleDraw.getLeft()+"Right："+btnSimpleDraw.getRight()+"Top："+btnSimpleDraw.getTop()+"Bottom："+btnSimpleDraw.getBottom());
+     
+        
+       // System.out.println("图片长度："+height+"图片宽度："+width);
+       // Log.i("length:",
+               // String.valueOf(X_axis.length) + "," + String.valueOf(Y_axis.length));
+        for (int i = 1; i < X_axis.length; i++) {// 计算正弦波
+            Y_axis[i - 1] = centerY
+                    - (int) (100 * Math.sin(i * 2 * Math.PI / 180));
+        }
+    	
+        SimpleDraw(Y_axis.length-1);//直接绘制正弦波
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mGattUpdateReceiver);
+        wakeLock.release();
     }
 
     @Override
@@ -379,6 +426,32 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
         return intentFilter;
+    }
+    
+    /**
+     * 绘制指定区域
+     */
+ void SimpleDraw(int length) {
+        if (length == 0)
+            oldX = 0;
+        else
+        	oldX = X1;
+        //Canvas canvas = sfh.lockCanvas(new Rect(X1, Y1, X2,Y2));// 关键:获取画布
+        Log.i("Canvas:",
+                String.valueOf(oldX) + "," + String.valueOf(oldX + length));
+ 
+        Paint mPaint = new Paint();
+        mPaint.setColor(Color.GREEN);// 画笔为绿色
+        mPaint.setStrokeWidth(2);// 设置画笔粗细
+ 
+        int y;
+        for (int i = oldX + 1; i < length; i++) {// 绘画正弦波
+            y = Y_axis[i - 1];
+           // canvas.drawLine(oldX, oldY, i, y, mPaint);
+            oldX = i;
+            oldY = y;
+        }
+       // sfh.unlockCanvasAndPost(canvas);// 解锁画布，提交画好的图像
     }
     
 
