@@ -16,17 +16,18 @@
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="10dp"
+    android:layout_margin="5dp"
     android:orientation="vertical" >
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
+        android:layout_margin="5dp"
         android:orientation="horizontal" >
- 
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -39,17 +40,15 @@
             android:layout_height="wrap_content"
             android:text="@string/disconnected"
             android:textSize="18sp" />
-
-
     </LinearLayout>
-    
-        <LinearLayout
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
+        android:layout_margin="5dp"
         android:orientation="horizontal" >
-        
-      <TextView
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/label_data"
@@ -61,20 +60,40 @@
             android:layout_height="wrap_content"
             android:text="@string/no_data"
             android:textSize="30sp" />
-  </LinearLayout>
-        
-    <SurfaceView
-        android:id="@+id/surfaceView01"
+    </LinearLayout>
+
+ 
+
+    <LinearLayout 
+        android:id="@+id/lineLayout1"      
         android:layout_width="match_parent"
-        android:layout_height="0dip"
-        android:layout_weight="112.66" />
+        android:layout_height="wrap_content"
+        android:layout_weight="0.71"
+        android:orientation="vertical" >
+    </LinearLayout>
 
-
+    <LinearLayout
     
-            <TextView
-            android:id="@+id/device_address"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="18sp" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" 
+        android:layout_margin="10dp" >
+
+       <TextView
+           android:id="@+id/device_address1"
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@string/label_device_address"
+           android:textSize="18sp" />
+  
+          <TextView
+       android:id="@+id/device_address"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:layout_weight="0.07"
+       android:textSize="18sp" />
+    </LinearLayout>
+    
+ 
 
 </LinearLayout>

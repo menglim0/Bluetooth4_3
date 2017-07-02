@@ -23,6 +23,15 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import org.achartengine.ChartFactory;
+import org.achartengine.GraphicalView;
+import org.achartengine.chart.PointStyle;
+import org.achartengine.model.XYMultipleSeriesDataset;
+import org.achartengine.model.XYSeries;
+import org.achartengine.renderer.XYMultipleSeriesRenderer;
+import org.achartengine.renderer.XYSeriesRenderer;
+
+import android.R.layout;
 import android.app.Activity;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
@@ -36,8 +45,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Paint.Align;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
@@ -47,10 +59,30 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.ExpandableListView;
+import android.widget.LinearLayout;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
+import java.util.Timer;
+import java.util.TimerTask;
+import org.achartengine.ChartFactory; 
+import org.achartengine.GraphicalView;
+import org.achartengine.chart.PointStyle; 
+import org.achartengine.model.XYMultipleSeriesDataset; 
+import org.achartengine.model.XYSeries; 
+import org.achartengine.renderer.XYMultipleSeriesRenderer; 
+import org.achartengine.renderer.XYSeriesRenderer;
+import android.app.Activity; 
+import android.content.Context;
+import android.graphics.Color; 
+import android.graphics.Paint.Align;
+import android.os.Bundle; 
+import android.os.Handler;
+import android.os.Message;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.LinearLayout;
 //import com.mt.truthblue2_1.TalkActivity;
 //import com.example.circleview.MainActivity.MyTimerTask;
 //import com.example.circleview.MainActivity.MyTimerTask;
@@ -88,14 +120,21 @@ public class DeviceControlActivity extends Activity {
     WakeLock wakeLock = null;
     
     /* Draw*/
-    SurfaceView sfv;
-    SurfaceHolder sfh;
-    int X1,X2,Y1,Y2;//保存正弦波的Y轴上的点
-    int X_axis[];//保存正弦波的Y轴上的点
-    int Y_axis[],//保存正弦波的Y轴上的点
-        centerY,//中心线
-    oldX,oldY,//上一个XY点 
-    currentX;//当前绘制到的X轴上的点    
+    private Timer drawTimer = new Timer();
+    private TimerTask drawTask;
+    private Handler Drawhandler;
+    private String title = "Oil Temperature Read";
+    private XYSeries series;
+    private XYMultipleSeriesDataset mDataset;
+    private GraphicalView chart;
+    private XYMultipleSeriesRenderer renderer;
+    private Context context;
+    private int addX = -1, addY,gCount;
+    
+    int[] xv = new int[100];
+    int[] yv = new int[100];
+    
+    int temperature=1;
     /* End of Draw*/
     
     // Code to manage Service lifecycle.
@@ -142,6 +181,7 @@ public class DeviceControlActivity extends Activity {
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                temperature = Integer.parseInt(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
         }
     };
@@ -212,7 +252,58 @@ public class DeviceControlActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.gatt_services_characteristics);
-
+        
+        context = getApplicationContext();
+      //这里获得main界面上的布局，下面会把图表画在这个布局里面
+        LinearLayout layout = (LinearLayout)findViewById(R.id.lineLayout1);
+        
+        //这个类用来放置曲线上的所有点，是一个点的集合，根据这些点画出曲线
+       series = new XYSeries(title);
+        
+        //创建一个数据集的实例，这个数据集将被用来创建图表
+        mDataset = new XYMultipleSeriesDataset();
+        
+        //将点集添加到这个数据集中
+        mDataset.addSeries(series);
+        
+        //以下都是曲线的样式和属性等等的设置，renderer相当于一个用来给图表做渲染的句柄
+        int color = Color.GREEN;
+        PointStyle style = PointStyle.CIRCLE;
+        renderer = buildRenderer(color, style, true);
+        
+       //设置好图表的样式
+        setChartSettings(renderer, "X", "Y", 0, 100, 0, 90, Color.WHITE, Color.WHITE);
+        
+        //生成图表
+        chart = ChartFactory.getLineChartView(context, mDataset, renderer);
+        
+        //将图表添加到布局中去
+        layout.addView(chart, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
+        
+        //这里的Handler实例将配合下面的Timer实例，完成定时更新图表的功能
+               
+        Drawhandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) 
+        {
+         //刷新图表
+         updateChart();
+         super.handleMessage(msg);
+        }
+        };
+        
+        drawTask = new TimerTask() {
+        @Override
+        public void run() {
+        Message message = new Message();
+            message.what = 1;
+            Drawhandler.sendMessage(message);
+        }
+        };
+        
+        drawTimer.schedule(drawTask, 500, 500);
+        
+        
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
@@ -224,25 +315,20 @@ public class DeviceControlActivity extends Activity {
         mConnectionState = (TextView) findViewById(R.id.connection_state);
        	mDataField = (TextView) findViewById(R.id.data_value);
        	
+       	/*保持屏幕常亮*/
        	powerManager = (PowerManager)this.getSystemService(this.POWER_SERVICE);
         wakeLock = this.powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Lock");
-       	
-        sfv = (SurfaceView) findViewById(R.id.surfaceView01);
-        sfh = sfv.getHolder();
-     // 初始化y轴数据
-                
-       	/*注册Button监听事件*/
-       //	str_button1 = (Button) findViewById(R.id.str_button1);
-       	//OnClickListener OnClickListener;
-		//str_button1.setOnClickListener(SerialTransClickListner);
-       	
+        /*end of 保持屏幕常亮*/
+       
         getActionBar().setTitle("读取油温");
         getActionBar().setDisplayHomeAsUpEnabled(true);
         
         /*响应蓝牙服务--BluetoothLeService*/
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-      
+        
+        
+        
     }
 
     @Override
@@ -256,26 +342,8 @@ public class DeviceControlActivity extends Activity {
             Log.d(TAG, "C onnect request result=" + result);
         }
      // 初始化y轴数据
-        centerY = (sfv.getBottom() - sfv.getTop())/2+sfv.getTop();
-       
-        X1 = sfv.getLeft();
-        X2 = sfv.getRight();
-        Y1 = sfv.getTop();
-        Y2 = sfv.getBottom();
-        X_axis = new int[(sfv.getRight() - sfv.getLeft())];
-        Y_axis = new int[X_axis.length];
-       // System.out.println("图片各个角Left："+btnSimpleDraw.getLeft()+"Right："+btnSimpleDraw.getRight()+"Top："+btnSimpleDraw.getTop()+"Bottom："+btnSimpleDraw.getBottom());
      
-        
-       // System.out.println("图片长度："+height+"图片宽度："+width);
-       // Log.i("length:",
-               // String.valueOf(X_axis.length) + "," + String.valueOf(Y_axis.length));
-        for (int i = 1; i < X_axis.length; i++) {// 计算正弦波
-            Y_axis[i - 1] = centerY
-                    - (int) (100 * Math.sin(i * 2 * Math.PI / 180));
-        }
-    	
-        SimpleDraw(Y_axis.length-1);//直接绘制正弦波
+     
     }
 
     @Override
@@ -287,6 +355,8 @@ public class DeviceControlActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+    	 //当结束程序时关掉Timer
+    	drawTimer.cancel();
         super.onDestroy();
         unbindService(mServiceConnection);
         mBluetoothLeService = null;
@@ -331,8 +401,19 @@ public class DeviceControlActivity extends Activity {
     }
 
     private void displayData(String data) {
+    	
         if (data != null) {
-            mDataField.setText(data);
+        	//tmp=Integer.toString(data);
+        	String str1 = " ";
+        	String str2 = data;
+        	String str3 = " ";
+        	String str4 = " DegC";
+        	StringBuilder builder = new StringBuilder();
+        	builder.append(str1);
+        	builder.append(str2);
+        	builder.append(str3);
+        	builder.append(str4);
+            mDataField.setText(builder);
         }
     }
 
@@ -431,28 +512,97 @@ public class DeviceControlActivity extends Activity {
     /**
      * 绘制指定区域
      */
- void SimpleDraw(int length) {
-        if (length == 0)
-            oldX = 0;
-        else
-        	oldX = X1;
-        //Canvas canvas = sfh.lockCanvas(new Rect(X1, Y1, X2,Y2));// 关键:获取画布
-        Log.i("Canvas:",
-                String.valueOf(oldX) + "," + String.valueOf(oldX + length));
- 
-        Paint mPaint = new Paint();
-        mPaint.setColor(Color.GREEN);// 画笔为绿色
-        mPaint.setStrokeWidth(2);// 设置画笔粗细
- 
-        int y;
-        for (int i = oldX + 1; i < length; i++) {// 绘画正弦波
-            y = Y_axis[i - 1];
-           // canvas.drawLine(oldX, oldY, i, y, mPaint);
-            oldX = i;
-            oldY = y;
-        }
-       // sfh.unlockCanvasAndPost(canvas);// 解锁画布，提交画好的图像
-    }
+    protected XYMultipleSeriesRenderer buildRenderer(int color, PointStyle style, boolean fill) {
+        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
+        
+        //设置图表中曲线本身的样式，包括颜色、点的大小以及线的粗细等
+        XYSeriesRenderer r = new XYSeriesRenderer();
+        r.setColor(color);
+        r.setPointStyle(style);
+        r.setFillPoints(fill);
+        r.setLineWidth(3);
+        renderer.addSeriesRenderer(r);
+        
+        return renderer;
+       }
+       
+       protected void setChartSettings(XYMultipleSeriesRenderer renderer, String xTitle, String yTitle,
+       double xMin, double xMax, double yMin, double yMax, int axesColor, int labelsColor) {
+        //有关对图表的渲染可参看api文档
+        renderer.setChartTitle(title);
+        renderer.setAxisTitleTextSize(25); // 坐标轴标题字体大小： 16 
+        renderer.setLabelsTextSize(25); // 轴标签字体大小： 15
+        renderer.setMargins( new int [] {30, 60, 25, 40}); // 图形 4 边距(上，左，右，下)
+        renderer.setXTitle(xTitle);
+        renderer.setYTitle(yTitle);
+        renderer.setXAxisMin(xMin);
+        renderer.setXAxisMax(xMax);
+        renderer.setYAxisMin(yMin);
+        renderer.setYAxisMax(yMax);
+        renderer.setAxesColor(axesColor);
+        renderer.setLabelsColor(labelsColor);
+        renderer.setShowGrid(true);
+        renderer.setGridColor(Color.GRAY);
+        renderer.setXLabels(20);
+        renderer.setYLabels(10);
+        renderer.setXTitle("Time");
+        renderer.setYTitle("Temperature");
+        renderer.setYLabelsAlign(Align.RIGHT);
+        renderer.setPointSize((float) 2);
+        renderer.setShowLegend(false);
+       }
+       
+       private void updateChart() {
+       
+       //设置好下一个需要增加的节点
+       addX = 0;
+       //addY = (int)(Math.random() * 90);
+       addY = temperature;
+       
+       
+       //判断当前点集中到底有多少点，因为屏幕总共只能容纳100个，所以当点数超过100时，长度永远是100
+       int length = series.getItemCount();
+       if (length > 100) {
+        length = 100;
+       }
+       gCount++;
+      
+
+       if (gCount < 100)
+       {//100个点以内的，直接添加进去就行
+           series.add(length+1, addY);
+          
+       }
+       else
+       {
+
+   		 //将旧的点集中x和y的数值取出来放入backup中，并且将x的值加1，造成曲线向右平移的效果
+   		 for (int i = 0; i < length-1; i++) {
+   			
+   		 xv[i] = (int) series.getX(i+1) -1;
+   		// xv[i] =  new Date((long)series.getX(i));
+   		 yv[i] = (int) series.getY(i+1);
+   		 }
+   		 //点集先清空，为了做成新的点集而准备
+   		 series.clear();
+
+   		 //将新产生的点首先加入到点集中，然后在循环体中将坐标变换后的一系列点都重新加入到点集中
+   		 //这里可以试验一下把顺序颠倒过来是什么效果，即先运行循环体，再添加新产生的点
+	 
+   		 for (int k = 0; k < length-1; k++) {
+   		     series.add(xv[k], yv[k]);
+   		    }
+   	
+   	     series.add(length, addY);//在100点处添加新的点
+       }
+       
+       mDataset.removeSeries(series);
+    //在数据集中添加新的点集
+    mDataset.addSeries(series);
     
+    //视图更新，没有这一步，曲线不会呈现动态
+    //如果在非UI主线程中，需要调用postInvalidate()，具体参考api
+    chart.invalidate();
+        }
 
 }
