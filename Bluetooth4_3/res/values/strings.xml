@@ -14,17 +14,17 @@
      limitations under the License.
 -->
 <resources>
-    <string name="app_name">OTRead</string>
+    <string name="app_name">TorqDisplay</string>
     <string name="ble_not_supported">BLE is not supported</string>
-    <string name="label_data">油温:</string>
+    <string name="label_data">扭矩:</string>
     <string name="label_device_address">设备地址: </string>
     <string name="label_state">状态:</string>
-    <string name="no_data"> -- DegC </string>
+    <string name="no_data"> -- NM </string>
     <string name="connected">连接成功</string>
     <string name="disconnected">断开连接</string>
     <string name="title_devices">扫描设备</string>
     <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
-    <string name="DegreeUnit">DegC</string>
+    <string name="DegreeUnit">NM</string>
 
     <string name="unknown_device">Unknown device</string>
     <string name="unknown_characteristic">Unknown characteristic</string>
@@ -36,6 +36,6 @@
     <string name="menu_scan">扫描</string>
     <string name="menu_stop">停止</string>
     
-    <string name="str_button1">油温读取</string>
+    <string name="str_button1">读取扭矩</string>
        
 </resources>

@@ -36,6 +36,8 @@ import android.util.Log;
 import java.util.List;
 import java.util.UUID;
 
+//import com.mt.tools.Tools;
+
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
@@ -157,14 +159,24 @@ public class BluetoothLeService extends Service {
             // For all other profiles, writes the data formatted in HEX.
         	/*在这里更新数据*/
             final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
+           double Data_double;
+           Data_double = (double)data[0];
+           Data_double = Data_double/2-44;
+            // String Str_Data = String.valueOf((double)(data[0]-88)/2);
+            
+            //Data_double = Data_double/2 -44;
+            
+            //if (data != null && data.length > 0) {
+             //   final StringBuilder stringBuilder = new StringBuilder(data.length);
+                //for(byte byteChar : data)
+                    //stringBuilder.append(String.format("%02f ", Data_double));
+                //stringBuilder.append(Str_Data);
                 //intent.putExtra(EXTRA_DATA, "  "+new String(data)+"  DegC");
-                intent.putExtra(EXTRA_DATA, new String(data));
+                //intent.putExtra(EXTRA_DATA, new String(data));
                // intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
-            }
+                //intent.putExtra(EXTRA_DATA, stringBuilder.toString());
+                intent.putExtra(EXTRA_DATA, String.valueOf(Data_double));
+            //}
         }
         sendBroadcast(intent);
     }

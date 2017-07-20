@@ -102,6 +102,7 @@ public class DeviceControlActivity extends Activity {
     private TextView mConnectionState;
     private TextView mDataField;
     private String mDeviceName;
+    private int mDeviceConnected=0;
     private String mDeviceAddress;
     private Button str_button1;
     private ExpandableListView mGattServicesList;
@@ -123,18 +124,19 @@ public class DeviceControlActivity extends Activity {
     private Timer drawTimer = new Timer();
     private TimerTask drawTask;
     private Handler Drawhandler;
-    private String title = "Oil Temperature Read";
+    private String title = "Display-48V";
     private XYSeries series;
     private XYMultipleSeriesDataset mDataset;
     private GraphicalView chart;
     private XYMultipleSeriesRenderer renderer;
     private Context context;
-    private int addX = -1, addY,gCount;
+    private int addX = -1,gCount,labelXmin,labelXmax;;
     
     int[] xv = new int[100];
     int[] yv = new int[100];
     
-    int temperature=1;
+    //int temperature=1;
+    double temperature=1,addY;
     /* End of Draw*/
     
     // Code to manage Service lifecycle.
@@ -181,7 +183,12 @@ public class DeviceControlActivity extends Activity {
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
-                temperature = Integer.parseInt(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                //temperature = Integer.parseInt(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                temperature=Double.parseDouble(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                //mGattCharacteristics_Serial.setValue(58,58,58);
+                //mBluetoothLeService.mBluetoothGatt
+    					//.writeCharacteristic(mGattCharacteristics_Serial);
+                mDeviceConnected=1;
             }
         }
     };
@@ -267,12 +274,12 @@ public class DeviceControlActivity extends Activity {
         mDataset.addSeries(series);
         
         //以下都是曲线的样式和属性等等的设置，renderer相当于一个用来给图表做渲染的句柄
-        int color = Color.GREEN;
+        int color = Color.BLUE;
         PointStyle style = PointStyle.CIRCLE;
         renderer = buildRenderer(color, style, true);
         
        //设置好图表的样式
-        setChartSettings(renderer, "X", "Y", 0, 100, 0, 90, Color.WHITE, Color.WHITE);
+        setChartSettings(renderer, "X", "Y", 0, 600, -30, 50, Color.WHITE, Color.WHITE);
         
         //生成图表
         chart = ChartFactory.getLineChartView(context, mDataset, renderer);
@@ -287,7 +294,8 @@ public class DeviceControlActivity extends Activity {
         public void handleMessage(Message msg) 
         {
          //刷新图表
-         updateChart();
+        	if(mDeviceConnected==1)
+        	{updateChart();}         
          super.handleMessage(msg);
         }
         };
@@ -296,12 +304,12 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void run() {
         Message message = new Message();
-            message.what = 1;
+            message.what = mDeviceConnected;
             Drawhandler.sendMessage(message);
         }
         };
         
-        drawTimer.schedule(drawTask, 500, 500);
+        drawTimer.schedule(drawTask, 100, 100);
         
         
         final Intent intent = getIntent();
@@ -320,7 +328,7 @@ public class DeviceControlActivity extends Activity {
         wakeLock = this.powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Lock");
         /*end of 保持屏幕常亮*/
        
-        getActionBar().setTitle("读取油温");
+        getActionBar().setTitle("扭矩显示");
         getActionBar().setDisplayHomeAsUpEnabled(true);
         
         /*响应蓝牙服务--BluetoothLeService*/
@@ -341,9 +349,7 @@ public class DeviceControlActivity extends Activity {
            
             Log.d(TAG, "C onnect request result=" + result);
         }
-     // 初始化y轴数据
-     
-     
+    
     }
 
     @Override
@@ -356,6 +362,7 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onDestroy() {
     	 //当结束程序时关掉Timer
+    	series.clear();
     	drawTimer.cancel();
         super.onDestroy();
         unbindService(mServiceConnection);
@@ -404,10 +411,11 @@ public class DeviceControlActivity extends Activity {
     	
         if (data != null) {
         	//tmp=Integer.toString(data);
+        	//double data_d
         	String str1 = " ";
         	String str2 = data;
         	String str3 = " ";
-        	String str4 = " DegC";
+        	String str4 = " NM";
         	StringBuilder builder = new StringBuilder();
         	builder.append(str1);
         	builder.append(str2);
@@ -520,7 +528,7 @@ public class DeviceControlActivity extends Activity {
         r.setColor(color);
         r.setPointStyle(style);
         r.setFillPoints(fill);
-        r.setLineWidth(3);
+        r.setLineWidth(4);
         renderer.addSeriesRenderer(r);
         
         return renderer;
@@ -544,9 +552,9 @@ public class DeviceControlActivity extends Activity {
         renderer.setShowGrid(true);
         renderer.setGridColor(Color.GRAY);
         renderer.setXLabels(20);
-        renderer.setYLabels(10);
-        renderer.setXTitle("Time");
-        renderer.setYTitle("Temperature");
+        renderer.setYLabels(16);
+        renderer.setXTitle("Time (100ms/Div)");
+        renderer.setYTitle("Torq");
         renderer.setYLabelsAlign(Align.RIGHT);
         renderer.setPointSize((float) 2);
         renderer.setShowLegend(false);
@@ -562,20 +570,27 @@ public class DeviceControlActivity extends Activity {
        
        //判断当前点集中到底有多少点，因为屏幕总共只能容纳100个，所以当点数超过100时，长度永远是100
        int length = series.getItemCount();
-       if (length > 100) {
-        length = 100;
+       if (length > 600) {
+        length = 600;
        }
        gCount++;
       
 
-       if (gCount < 100)
+       if (gCount < 600)
        {//100个点以内的，直接添加进去就行
            series.add(length+1, addY);
           
        }
        else
        {
-
+       	labelXmax= gCount;
+   	   	addX = gCount;
+   	    labelXmin=labelXmax-600;		 
+   		 //Log.i("data", "update");
+   	     renderer.setXAxisMin(labelXmin);
+   	     renderer.setXAxisMax(labelXmax);
+/*如果坐标轴不动，取下面这段代码*/
+   		/* 
    		 //将旧的点集中x和y的数值取出来放入backup中，并且将x的值加1，造成曲线向右平移的效果
    		 for (int i = 0; i < length-1; i++) {
    			
@@ -594,6 +609,9 @@ public class DeviceControlActivity extends Activity {
    		    }
    	
    	     series.add(length, addY);//在100点处添加新的点
+   	     */
+   	  /*如果坐标轴不动，取上面这段代码*/
+   	  series.add(gCount, addY);//在100点处添加新的点  
        }
        
        mDataset.removeSeries(series);
